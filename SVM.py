@@ -1,8 +1,13 @@
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
-def do_svm(data, label, n_flod = 3):
+def do_svm(data, label, n_flod=5, debug=True):
     kf = KFold(n_splits=n_flod, shuffle=True)
+    train_indexs = []
+    test_indexs = []
+    for train_index, test_index in kf.split(data, label):
+        train_indexs.append(train_index)
+        test_indexs.append(test_index)
     max_accuracy = 0.0
     record = []
     for param_c in range(-20, 20, 1):
@@ -12,7 +17,9 @@ def do_svm(data, label, n_flod = 3):
                 gamma=pow(2, param_g)
             )
             accuracy = 0.0
-            for train_index, test_index in kf.split(data, label):
+            for i in range(n_flod):
+                train_index = train_indexs[i]
+                test_index = test_indexs[i]
                 svc.fit(data[train_index, :], label[train_index])
                 predicted_label = svc.predict(data[test_index, :])
                 ground_true = label[test_index]
@@ -23,6 +30,7 @@ def do_svm(data, label, n_flod = 3):
                 record.append(param_c)
                 record.append(param_g)
                 max_accuracy = accuracy
-            print '-c param is %g, -g params is %g, accuracy is %g' % (param_c, param_g, accuracy)
+            if debug:
+                print '-c param is %g, -g params is %g, accuracy is %g' % (param_c, param_g, accuracy)
     print 'max accuracy is %g, -c params is %g, -g params is %g' % (max_accuracy, record[0], record[1])
     return max_accuracy, record

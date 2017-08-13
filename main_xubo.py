@@ -2,6 +2,7 @@ from sklearn.decomposition import PCA
 import heapq
 from sklearn.cluster import KMeans
 import numpy as np
+import scipy.io as scio
 import load_input
 import Tools
 import math
@@ -11,6 +12,7 @@ import SVM
 KMEANS_CENTER_NUM = 300
 LATENT_CONCEPTS_NUM = 100
 PERCENTAGE_PT = 0.8
+STOP_ITERATOR_THRESHOLD = 20
 
 
 # do pca operation for X(patches)
@@ -150,7 +152,7 @@ def calu_two_matrix(image_hist, k=LATENT_CONCEPTS_NUM):
         p_w_z = p_w_z_new
         p_z_d = p_z_d_new
         print 'diff is %g' % diff
-        if diff < 1e-5:
+        if diff < STOP_ITERATOR_THRESHOLD:
             break
     return p_w_z
 
@@ -176,25 +178,31 @@ def build_selected_hist_images(hist_images, p_w_z, pt=PERCENTAGE_PT):
 
 
 if __name__ == '__main__':
+    pts = [0.8, 0.99]
+    latent_concepts_nums = [(i+1) * 10 for i in range(10)]
     image_hist_npy_path = './data/image_hist.npy'
-    labels, patches, count = load_input.load_input()
-    if os.path.exists(image_hist_npy_path):
-        images_hist = np.load(image_hist_npy_path)
-        print 'load npy file successful'
-    else:
-        all_labels = calu_all_labels(labels, count)
-        patches = do_pca(patches)
-        print 'finish pca operation, the patches shape is ', np.shape(patches)
-        print 'all labels shape is ', np.shape(all_labels)
-        kmeans_res = do_k_means(patches)
-        images_hist = calu_hist(count, kmeans_res.labels_)
-        np.save(
-            image_hist_npy_path,
-            images_hist
-        )
-        print 'save npy file successful'
+    mat_path = '/home/give/PycharmProjects/BoVWMI/Code/BoVW-pLSA/data/xubo/histogram.mat'
+    label_path = '/home/give/PycharmProjects/BoVWMI/Code/BoVW-pLSA/data/xubo/class.mat'
+    images_hist = scio.loadmat(mat_path)['histogram']
+    images_hist = np.array(images_hist)
+    labels = scio.loadmat(label_path)['class']
+    labels = np.reshape(labels, [132])
     print 'image hist shape is ', np.shape(images_hist)
-    p_w_z = calu_two_matrix(images_hist)
-    selected_hist_images = build_selected_hist_images(images_hist, p_w_z)
-    print 'selcted image hist shape is ', np.shape(selected_hist_images)
-    SVM.do_svm(np.array(selected_hist_images), np.array(labels))
+    for pt in pts:
+        for latent_concepts_num in latent_concepts_nums:
+            print '-'*15, 'pt=', pt, ' latent_concepts_num=', latent_concepts_num, '-'*15
+            save_path = './data/xubo/selected_image_hist_' + str(pt) + '_' + str(latent_concepts_num) + '.mat'
+            if os.path.exists(save_path):
+                selected_hist_images = scio.loadmat(save_path)['histogram']
+            else:
+                p_w_z = calu_two_matrix(images_hist, k=latent_concepts_num)
+                selected_hist_images = build_selected_hist_images(images_hist, p_w_z, pt=pt)
+            print 'selcted image hist shape is ', np.shape(selected_hist_images), ' remove rate is ',\
+                1 - ((1.0 * np.shape(selected_hist_images)[1]) / (1.0 * np.shape(images_hist)[1]))
+            scio.savemat(
+                save_path,
+                {
+                    'histogram': selected_hist_images
+                }
+            )
+            SVM.do_svm(np.array(selected_hist_images), np.array(labels), n_flod=5, debug=False)
