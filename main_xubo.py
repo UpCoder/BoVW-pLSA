@@ -188,21 +188,22 @@ if __name__ == '__main__':
     labels = scio.loadmat(label_path)['class']
     labels = np.reshape(labels, [132])
     print 'image hist shape is ', np.shape(images_hist)
-    for pt in pts:
-        for latent_concepts_num in latent_concepts_nums:
-            print '-'*15, 'pt=', pt, ' latent_concepts_num=', latent_concepts_num, '-'*15
-            save_path = './data/xubo/selected_image_hist_' + str(pt) + '_' + str(latent_concepts_num) + '.mat'
-            if os.path.exists(save_path):
-                selected_hist_images = scio.loadmat(save_path)['histogram']
-            else:
-                p_w_z = calu_two_matrix(images_hist, k=latent_concepts_num)
-                selected_hist_images = build_selected_hist_images(images_hist, p_w_z, pt=pt)
-            print 'selcted image hist shape is ', np.shape(selected_hist_images), ' remove rate is ',\
-                1 - ((1.0 * np.shape(selected_hist_images)[1]) / (1.0 * np.shape(images_hist)[1]))
-            scio.savemat(
-                save_path,
-                {
-                    'histogram': selected_hist_images
-                }
-            )
-            SVM.do_svm(np.array(selected_hist_images), np.array(labels), n_flod=5, debug=False)
+    SVM.do_svm(np.array(images_hist), np.array(labels), n_flod=5, debug=False, is_linear=True)
+    # for pt in pts:
+    #     for latent_concepts_num in latent_concepts_nums:
+    #         print '-'*15, 'pt=', pt, ' latent_concepts_num=', latent_concepts_num, '-'*15
+    #         save_path = './data/xubo/selected_image_hist_' + str(pt) + '_' + str(latent_concepts_num) + '.mat'
+    #         if os.path.exists(save_path):
+    #             selected_hist_images = scio.loadmat(save_path)['histogram']
+    #         else:
+    #             p_w_z = calu_two_matrix(images_hist, k=latent_concepts_num)
+    #             selected_hist_images = build_selected_hist_images(images_hist, p_w_z, pt=pt)
+    #         print 'selcted image hist shape is ', np.shape(selected_hist_images), ' remove rate is ',\
+    #             1 - ((1.0 * np.shape(selected_hist_images)[1]) / (1.0 * np.shape(images_hist)[1]))
+    #         scio.savemat(
+    #             save_path,
+    #             {
+    #                 'histogram': selected_hist_images
+    #             }
+    #         )
+    #         SVM.do_svm(np.array(selected_hist_images), np.array(labels), n_flod=5, debug=False, is_linear=True)
